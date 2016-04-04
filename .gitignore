@@ -16,6 +16,8 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+# MAtlab NoDesiredFiles
+*.asv
 
 # =========================
 # Operating System Files
