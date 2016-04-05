@@ -2,13 +2,14 @@ function [ imageNames ] = openImages( robin1_daniel0 )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
     
-   
+    %root = FiberAlignmentConstants.root;
+    root = 'G:\Desktop\QMUL\Disertation\MatlabSoftware\V1\MatlabFiberAlignment\FiberImages';
     if robin1_daniel0 == 1
         %Robins Images
-        dirText = '../../Images/RobinImages/oneEachGroup/'; 
+        dirText = strcat(root,'/RobinImages/oneEachGroup/'); 
     elseif robin1_daniel0 == 0
         %Daniel Images
-        dirText = '../../Images/DanielRowsonImages/';
+        dirText = strcat(root,'/DanielRowsonImages/');
     else
         disp('Set a correct value to choose the file');
         imageNames = {};

@@ -1,10 +1,18 @@
 close all;
-
+clear all;
 robin1_daniel0 = 1; %To use Robin's Photos set to 1
 
 if exist('arrayOfImages','var') == 0
+    disp('Opening Images')
     arrayOfImages = openImages(robin1_daniel0);
+    
 end
+
+if numel(arrayOfImages) == 0
+   disp('ZERO Images')     
+   return
+end
+    
 showArrayOfImages(arrayOfImages);
 
 if exist('fouriers','var') == 0
