@@ -2,23 +2,13 @@ close all;
 clear all;
 
 robin1_daniel0 = 0; %To use Robin's Photos set to 1
-degreesSeparationForEachLine = 2;
+degreesSeparationForEachLine = 1;
 filterRodSize = 3;
-
-
-    
 
 if exist('arrayOfImages','var') == 0
     disp('Opening Images')
     %arrayOfImages = openImages(robin1_daniel0,2);
-    arrayOfImages = openImages(robin1_daniel0,1);%second parameter -1= printall otherwise only the amount of images
-    
-end
-
-if robin1_daniel0 ==0
-    
-    filterRodSize = floor(filterRodSize * 0);
-    arrayOfImages = filterImages(arrayOfImages);
+    arrayOfImages = openImages(robin1_daniel0,1,2);%second parameter -1= printall otherwise only the amount of images
     
 end
 
@@ -35,7 +25,19 @@ end
 showArrayOfImages(fouriers);
 
 if exist('fouriersFiltered','var') == 0
+    if robin1_daniel0 ==0 
+        filterRodSize = floor(filterRodSize * 0);
+    end
     fouriersFiltered = filterFourier( fouriers,filterRodSize );
+end
+
+if robin1_daniel0 ==0  
+    
+    arrayOfImagesSpecialsFiltered = createFFT(filterImages(arrayOfImages));
+    
+    fouriersFiltered = filterInFrequency(fouriersFiltered,arrayOfImagesSpecialsFiltered);
+    fouriersFiltered = highFrequencyFilter(fouriersFiltered);
+    showArrayOfImages(arrayOfImagesSpecialsFiltered, 'after Filtered');
 end
 
 %showArrayOfImages(fouriersFiltered);

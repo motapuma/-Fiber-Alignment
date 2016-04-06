@@ -11,7 +11,9 @@ function [ filteredImages ] = filterImages( array_of_images )
     for index = 1:nElements
         
         img   = array_of_images{index};
-        filteredImages{index} = imgaussfilt(img);
+        H = fspecial('average',100);
+        
+        filteredImages{index} = imfilter(img,H);
         
     end
 end

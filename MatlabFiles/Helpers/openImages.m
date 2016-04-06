@@ -1,4 +1,4 @@
-function [ imageNames ] = openImages( robin1_daniel0,limited )
+function [ imageNames ] = openImages( robin1_daniel0,limited,offsetImage )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
     
@@ -19,16 +19,21 @@ function [ imageNames ] = openImages( robin1_daniel0,limited )
     f = dir(strcat(dirText,'*.tif'));
 
     files ={f.name};
-   
+    offset =1;
      if limited >= 0
         nFiles = limited;
+        if isinteger(offsetImage) && nFiles+offsetImage < numel(files)
+            offset = offsetImage;
+        end
      else
          nFiles = numel(files); 
+         
      end
     
     arrayOfImages = cell(1,nFiles);
     
-     for k=1:nFiles
+     for k=offset:nFiles
+        
        arrayOfImages{k}=imread(strcat(dirText, files{k}));
        
        [a,b,c]=size(arrayOfImages{k});

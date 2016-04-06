@@ -34,12 +34,23 @@ function [ sp, area,limits ] = areaBelowAPeak( xArr,lineSpace, maxIndex, proport
     rigthLimitIndex = rigthLimitA(1) + maxIndex-1;
     leftLimitIndex  = leftLimitA(1);
     
+    if rigthLimitIndex == leftLimitIndex
+        
+        if  leftLimitIndex ~= 0
+            leftLimitIndex= leftLimitIndex-1;
+        else
+            rigthLimitIndex = leftLimitIndex+1;
+        end
+        
+    end
+    
     limits(1) = leftLimitIndex;
     limits(2) = rigthLimitIndex;
     
     sp = abs(rigthLimitIndex-leftLimitIndex);
     
     area = trapz(lineSpace(leftLimitIndex:rigthLimitIndex),xArr(leftLimitIndex:rigthLimitIndex));
+
     
     % look to the other side when not found
     
