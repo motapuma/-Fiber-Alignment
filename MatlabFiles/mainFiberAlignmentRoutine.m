@@ -8,7 +8,7 @@ filterRodSize = 3;
 if exist('arrayOfImages','var') == 0
     disp('Opening Images')
     %arrayOfImages = openImages(robin1_daniel0,2);
-    arrayOfImages = openImages(robin1_daniel0,1,2);%second parameter -1= printall otherwise only the amount of images
+    arrayOfImages = openImages(robin1_daniel0,1,9);%second parameter -1= printall otherwise only the amount of images
     
 end
 
