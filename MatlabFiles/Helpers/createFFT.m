@@ -7,7 +7,7 @@ function [ fouriers ] = createFFT( array_of_images )
 
     
     % CREATE THE FFT AND PLOT IT!!
-    parfor index = 1:nElements
+    for index = 1:nElements
         
         img   = array_of_images{index};
         F = fft2(img);

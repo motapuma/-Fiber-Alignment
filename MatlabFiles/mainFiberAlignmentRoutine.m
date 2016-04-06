@@ -1,10 +1,24 @@
 close all;
 clear all;
-robin1_daniel0 = 1; %To use Robin's Photos set to 1
+
+robin1_daniel0 = 0; %To use Robin's Photos set to 1
+degreesSeparationForEachLine = 2;
+filterRodSize = 3;
+
+
+    
 
 if exist('arrayOfImages','var') == 0
     disp('Opening Images')
-    arrayOfImages = openImages(robin1_daniel0);
+    %arrayOfImages = openImages(robin1_daniel0,2);
+    arrayOfImages = openImages(robin1_daniel0,1);%second parameter -1= printall otherwise only the amount of images
+    
+end
+
+if robin1_daniel0 ==0
+    
+    filterRodSize = floor(filterRodSize * 0);
+    arrayOfImages = filterImages(arrayOfImages);
     
 end
 
@@ -21,34 +35,34 @@ end
 showArrayOfImages(fouriers);
 
 if exist('fouriersFiltered','var') == 0
-    fouriersFiltered = filterFourier( fouriers );
+    fouriersFiltered = filterFourier( fouriers,filterRodSize );
 end
 
-showArrayOfImages(fouriersFiltered);
+%showArrayOfImages(fouriersFiltered);
 
-% figure;
-% se = strel('disk',3);
-% fouriersFiltered = cell(1,nFiles);
-% for index = 1:toshow
-%      imageNumber = index*3;
-%      img   = fouriers{index};
-%      %img = imerode(img,se);
-%      fouriersFiltered{index} = img;
-%      subplot(m,n,index)
-%      subimage(fouriersFiltered{index})
-%      title(strcat('Image', num2str(imageNumber)))
-% end
-% 
-% orientationFFTArr = cell(1,toshow);
-% figure;
-% for index = 1:toshow
-%     img   = fouriersFiltered{index};
-%     [newImg, arrRes]= addGradeLines( img, degreeSeparation );
-%     orientationFFTArr{index} = arrRes;
-%     subplot(m,n,index)
-%     imshow(newImg)
-% end
-% 
+% START ROTATING FFT
+rotatedFouriersFiltered = rotateImages( fouriersFiltered );
+
+showArrayOfImages(rotatedFouriersFiltered);
+
+% END ROTATING FFT
+
+
+% START Adding lineas at as a circle to meassure orientation
+
+[imagesWithDegreesLines,arrayOfArrayWithResultsForEach] = addGradeLinesToImages(rotatedFouriersFiltered,degreesSeparationForEachLine);
+%showArrayOfImages(imagesWithDegreesLines);
+% END Adding lineas at as a circle to meassure orientation
+
+
+% START  CalculatingMeanSTDandMax
+
+getMeanStdAndMaxs( arrayOfArrayWithResultsForEach,degreesSeparationForEachLine )
+
+
+% END 
+
+
 % figure;
 % meansAndSTDAndMax = cell(1,numel(orientationFFTArr));
 % oriImgArr = cell(1,numel(orientationFFTArr));
