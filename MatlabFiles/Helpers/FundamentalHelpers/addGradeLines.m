@@ -72,7 +72,7 @@ function [ newImg,arrRes ] = addGradeLines( img, grades )
             index = sub2ind(size(img),ry,rx);
             newImg(index)   = 255; %% set to white the ones who are in the angle
             %newImg(index+1) = 255;
-            toSum = img(index);% lets sum in the original image instead of the new one
+            toSum = img(index);% lets sum from the original image instead of the new one
             
             %arrRes(j)   = sum(toSum);
             arrRes(j)   = sum(toSum)/numel(toSum);
