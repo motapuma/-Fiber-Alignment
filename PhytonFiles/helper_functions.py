@@ -63,7 +63,11 @@ def create_fft(image_list):
 		
 		f = np.fft.fft2(image)
 		fshift = np.fft.fftshift(f)
-		magnitude_spectrum = 20*np.log(np.abs(fshift))
+		#magnitude_spectrum = 20*np.log(np.abs(fshift))
+		magnitude_spectrum = np.abs(fshift)
+		magnitude_spectrum *= 255/np.max(magnitude_spectrum)
+
+
 		fouriersList.append(magnitude_spectrum)
 
 	return fouriersList

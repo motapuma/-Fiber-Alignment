@@ -8,7 +8,7 @@ def draw_degrees_lines(image, degrees_separation):
 
 	middle_height = round(height*0.5)
 	middle_width  = round(width*0.5)
-	new_img = image
+	new_img = np.copy(image)
 	degrees_values = []
 	for angle in np.arange(0,180.1,degrees_separation):
 		
@@ -21,13 +21,15 @@ def draw_degrees_lines(image, degrees_separation):
 
 		if abs(m) > 10e10:
 			#print('Infinite')
-			
+			num_of_elements = 0
 			ys = np.linspace(0,middle_height,height*10)
 
 			for y in ys:
 				new_img[y][middle_width] = 255 
 				sum_on_degree += image[y][middle_width]
-				#print("x:" + str(middle_width) +  ", y:" + str(y) )
+				num_of_elements = num_of_elements + 1
+
+			print(" ES 180 creo... ")
 
 		else:
 			#print('NON infinite')
@@ -44,20 +46,27 @@ def draw_degrees_lines(image, degrees_separation):
 			ys = np.around(ys)
 			xs = np.around(xs)
 			
-			sum_on_degree = 0
-
-			i =0
+			sum_on_degree   = 0
+			i               = 0
+			num_of_elements = 0
 
 			for x in xs:
 				y = ys[i]
 				i = i + 1
-				#print("x:" + str(x))
+				
+				num_of_elements =  num_of_elements + 1
+
 				if y > 0 and y < height and x > 0 and x < width:
 					new_img[y][x] = 255 
 					sum_on_degree += image[y][x]
+					
+				#	print("Val to Sum: " + str(image[y][x]))
 				#	print("x:" + str(x) +  ", y:" + str(y) )
-								
-		degrees_values.append(sum_on_degree)
+
+
+		to_store_value = sum_on_degree/num_of_elements		
+		#print(str(to_store_value))						
+		degrees_values.append(to_store_value)
 
 	#print( "One image completly done" + str(len(degrees_values)) )
 	return [new_img,degrees_values]
