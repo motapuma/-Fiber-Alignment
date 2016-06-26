@@ -7,7 +7,7 @@ def draw_degrees_lines(image, degrees_separation):
 	width  = image.shape[1]
 
 	middle_height = round(height*0.5)
-	middle_width  = round(width*0.5)
+	middle_width  = int(round(width*0.5))
 	new_img = np.copy(image)
 	degrees_values = []
 	for angle in np.arange(0,180.1,degrees_separation):
@@ -22,14 +22,19 @@ def draw_degrees_lines(image, degrees_separation):
 		if abs(m) > 10e10:
 			#print('Infinite')
 			num_of_elements = 0
-			ys = np.linspace(0,middle_height,height*10)
+			ys = np.arange(0,middle_height+1)
+			sum_on_degree   = 0
 
 			for y in ys:
-				new_img[y][middle_width] = 255 
-				sum_on_degree += image[y][middle_width]
-				num_of_elements = num_of_elements + 1
+				y = int(y)
 
-			print(" ES 180 creo... ")
+				new_img[y][middle_width] = 255 
+				val_to_sum               = image[y][middle_width]
+				sum_on_degree           += val_to_sum
+				num_of_elements          = num_of_elements + 1
+				#print("sumo: " + str(val_to_sum) + " en y=" + str(y) )
+
+			#print(" ES 180 creo... ")
 
 		else:
 			#print('NON infinite')
@@ -51,21 +56,28 @@ def draw_degrees_lines(image, degrees_separation):
 			num_of_elements = 0
 
 			for x in xs:
-				y = ys[i]
+				y = int(ys[i])
+				x = int(x)
 				i = i + 1
 				
-				num_of_elements =  num_of_elements + 1
+				#num_of_elements =  num_of_elements + 1
 
 				if y > 0 and y < height and x > 0 and x < width:
 					new_img[y][x] = 255 
 					sum_on_degree += image[y][x]
+					num_of_elements =  num_of_elements + 1
+				
 					
 				#	print("Val to Sum: " + str(image[y][x]))
 				#	print("x:" + str(x) +  ", y:" + str(y) )
 
 
-		to_store_value = sum_on_degree/num_of_elements		
-		#print(str(to_store_value))						
+		# if angle == 90: 
+		#   	print("sum " + str(sum_on_degree))
+		#  	print("num of ele " + str(num_of_elements))
+				
+		to_store_value = float(sum_on_degree) / float(num_of_elements)		
+		#print("to store value: " + str(to_store_value))						
 		degrees_values.append(to_store_value)
 
 	#print( "One image completly done" + str(len(degrees_values)) )
