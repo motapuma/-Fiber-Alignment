@@ -18,7 +18,7 @@ $RECYCLE.BIN/
 *.lnk
 # MAtlab NoDesiredFiles
 *.asv
-
+*.class
 # =========================
 # Operating System Files
 # =========================
