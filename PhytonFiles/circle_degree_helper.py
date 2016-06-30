@@ -10,6 +10,7 @@ def draw_degrees_lines(image, degrees_separation):
 	middle_width  = int(round(width*0.5))
 	new_img = np.copy(image)
 	degrees_values = []
+
 	for angle in np.arange(0,180.1,degrees_separation):
 		
 		rad_degree = math.radians(angle)
@@ -63,8 +64,8 @@ def draw_degrees_lines(image, degrees_separation):
 				#num_of_elements =  num_of_elements + 1
 
 				if y > 0 and y < height and x > 0 and x < width:
-					new_img[y][x] = 255 
-					sum_on_degree += image[y][x]
+					new_img[y][x]   = 255 
+					sum_on_degree  += image[y][x]
 					num_of_elements =  num_of_elements + 1
 				
 					
@@ -76,8 +77,8 @@ def draw_degrees_lines(image, degrees_separation):
 		#   	print("sum " + str(sum_on_degree))
 		#  	print("num of ele " + str(num_of_elements))
 				
-		to_store_value = float(sum_on_degree) / float(num_of_elements)		
-		#print("to store value: " + str(to_store_value))						
+		to_store_value = float(sum_on_degree) / float(num_of_elements)		 
+		#print("sum on degree:"+str(sum_on_degree)+" # of element:"+ str(num_of_elements) + " to store value: " + str(to_store_value))						
 		degrees_values.append(to_store_value)
 
 	#print( "One image completly done" + str(len(degrees_values)) )

@@ -1,6 +1,7 @@
 import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
+import java.util.Arrays;
 import ij.plugin.frame.*;
 import ij.*;
 import ij.process.*;
@@ -9,15 +10,17 @@ import ij.process.FHT;
 
 
 
+
 public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 	public static final String BINARIZE     = "Binarize";
-	public static final String START        = "Start";
+	public static final String FFT_AND_ROT  = "FFT and Rotate";
 	public static final String ORIGINAL_FFT = "Orig. FFT";
 	public static final String ERODE        = "Erode";
 	public static final String DILATE       = "Dilate";
 	public static final String ANALYZE      = "Analize";
 	public static final String GRAPH        = "Graph";
+	
 
 	private Panel panel;
 	private int previousID;
@@ -51,7 +54,7 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 		addButton(ERODE,false);
 		addButton(DILATE,false);
 
-		addButton(START,false);
+		addButton(FFT_AND_ROT,false);
 		addButton(ORIGINAL_FFT,true);
 		addButton(ANALYZE,false);
 		addButton(GRAPH,false);
@@ -188,11 +191,14 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			ImageProcessor mask =  roi!=null?roi.getMask():null;
 			
 
-			if (command.equals(START)){
+			if (command.equals(FFT_AND_ROT)){
 
-				ImagePlus fft_image  = getFft(imp, ip);
+				ImagePlus fft_image  = this.getFftandRotate(imp, ip);
 				this.caller.ourImage = fft_image;
 				this.storeOriginalFft();
+
+				
+
 
 				this.caller.enableButton(BINARIZE, true);
 				this.caller.enableButton(ORIGINAL_FFT, true);
@@ -222,12 +228,13 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			}
 
 			if (command.equals(GRAPH)){
-				this.graphClock();
+				double[] results = this.drawAngles();
+				this.getStatistics(results);
 			}
 
 			if (command.equals(ANALYZE)){
 				// GET FFT 
-				ImagePlus fft_image  = getFft(imp, ip);
+				ImagePlus fft_image  = this.getFftandRotate(imp, ip);
 				this.caller.ourImage = fft_image;
 				this.storeOriginalFft();
 				
@@ -269,10 +276,12 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			//IJ.showStatus((System.currentTimeMillis()-startTime)+" milliseconds");
 		}
 
-		void graphClock(){
-			this.drawAngles();
-		}
-		void drawAngles(){
+		// void graphClock(){
+
+			
+		// }
+
+		double[] drawAngles(){
 
 			ImagePlus our_img_plus           = this.caller.ourImage;
 			ImageProcessor our_img_processor = our_img_plus.getProcessor();
@@ -291,7 +300,7 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 				double sumatoryRatio   = this.drawLineAtDegree(our_img_plus,our_img_processor,degree);
 
 				sumatoriesRatios[count] = sumatoryRatio;
-				degrees[count]	  = (double)degree;
+				degrees[count]	        = (double)degree;
 				
 				count++;
 			}
@@ -303,6 +312,8 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
         	plt.draw();
         	plt.show();
+
+        	return sumatoriesRatios;
 
 
 		}
@@ -330,10 +341,10 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 				for(int i = 0;i<= middle_height;i++){
 
-					
-
-					sumOfPixels += (double)our_img_processor.get(middle_width,i)/255.0; 
-					our_img_processor.set(middle_width,i,128);
+					double sumToTheVal  = (double)our_img_processor.get(middle_width,i);
+					sumOfPixels += sumToTheVal/255;
+					//IJ.write("sum aT 90:" + sumToTheVal );
+					//our_img_processor.set(middle_width,i,128);
 
 					numOfElements ++;
 				}
@@ -352,7 +363,7 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 				}
 
 				
-				for(double x = start; x < end; x += 0.01  ){
+				for(double x = start; x < end; x += 0.1  ){
 
 					//int xs,y;
 
@@ -361,18 +372,172 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 					if (y > 0 && y<height){
 						
-
-						sumOfPixels += (double)our_img_processor.get((int)Math.round(x),y)/255.0;
-						our_img_processor.set((int)Math.round(x),y,128);
+						double sumToTheVal  = (double)our_img_processor.get((int)Math.round(x),y);
+						//IJ.write(" this is divided by 128:" + sumToTheVal);
+						sumOfPixels += sumToTheVal/255;
+						//IJ.write("sum:" + sumToTheVal );
+						//our_img_processor.set((int)Math.round(x),y,128);
 						numOfElements ++;
 					}
 				}
 
 
 			}
-			IJ.write( "Angle: " + angle +" Value: " + sumOfPixels +  " Num of ele: " +  numOfElements);
+			//IJ.write( "Angle: " + angle +" Value: " + sumOfPixels +  " Num of ele: " +  numOfElements);
 			return (double)sumOfPixels/numOfElements;
 		}
+
+
+		
+
+
+		double[] getStatistics(double[] anglesSumatories)
+		{
+
+			int length = anglesSumatories.length;
+			double max = Double.NEGATIVE_INFINITY;
+			double min = Double.POSITIVE_INFINITY;
+			double middle;
+			int indexOfMax = -1;
+
+
+			for(int i = 0; i< length ; i++)
+			{
+				double ourVal = anglesSumatories[i];
+
+				if(ourVal < min)
+					min = ourVal;
+
+				if(ourVal > max){
+					max        = ourVal;
+					indexOfMax = i;	
+				}
+					
+
+			}
+			middle = ((max-min)/2) + min;
+
+			double totalAreaBelow   = this.trapz(anglesSumatories, 180.0/length);
+			double[] areaBelowThePeakandWidth = this.getAreaBelowThePeakAndWidthRatio(anglesSumatories,indexOfMax,middle,0.05);
+
+			double areaBelowThePeak = areaBelowThePeakandWidth[0];
+			double widthRatioInPixels    = areaBelowThePeakandWidth[1];
+
+			double areasRatio = areaBelowThePeak/totalAreaBelow;
+
+
+			double peakDensity = areasRatio/widthRatioInPixels;
+
+			IJ.write("MAx is: " +  max );
+			IJ.write("Peak Density is: " +  peakDensity);
+
+			double[] statistics = {max, peakDensity};
+
+			return statistics;
+
+		}	
+
+
+		double[] getAreaBelowThePeakAndWidthRatio(double[] values,int indexOfMax,double middle,double tolerance)
+		{
+
+			int rigthIndex,leftIndex;
+			double[] rigthSideValues,leftSideValues;
+			boolean haveRigthLimit,haveLeftLimit = true;
+
+			leftSideValues  = Arrays.copyOfRange(values,0,indexOfMax);
+			rigthSideValues = Arrays.copyOfRange(values,indexOfMax,values.length);
+
+
+			rigthIndex = this.getArrayClosestToBegingIndex(rigthSideValues,middle, tolerance);
+			leftIndex  = this.getArrayClosestToEndIndex(leftSideValues,middle, tolerance);
+
+
+			haveRigthLimit = rigthIndex != -1;
+			haveLeftLimit  = leftIndex  != -1;
+
+
+			if(!haveRigthLimit)
+				rigthIndex =0;
+			
+
+			if(!haveLeftLimit)
+				leftIndex =0;
+			
+			double area      = 0.0;
+			int widthInteger = rigthIndex + (indexOfMax -  leftIndex ); 
+
+			area = trapz(Arrays.copyOfRange(values,leftIndex, indexOfMax+rigthIndex), 180/widthInteger );
+
+
+			if(!haveRigthLimit){
+				rigthIndex = this.getArrayClosestToBegingIndex(leftSideValues,middle, tolerance);
+
+				area +=  trapz(Arrays.copyOfRange(leftSideValues,0, rigthIndex), 180/rigthIndex ); 
+
+				widthInteger += rigthIndex;
+			}
+			if(!haveLeftLimit){
+				leftIndex = this.getArrayClosestToEndIndex(rigthSideValues,middle, tolerance);
+				double localWidth = (rigthSideValues.length-leftIndex);
+				area +=  trapz(Arrays.copyOfRange(rigthSideValues,leftIndex, rigthSideValues.length), 180/localWidth) ;
+				widthInteger += localWidth;
+
+			}
+
+			double widthRatio   =  widthInteger/((double)values.length);
+			double[] toReturn   =  {area, widthRatio };
+			return toReturn;
+
+
+		}
+
+		 public int getArrayClosestToBegingIndex(double[] arr,double value,double tolerance) {
+
+		        int k = -1;
+
+		        for(int i=0;i<arr.length;i++){
+
+		            if(Math.abs(arr[i]-value) < tolerance){
+		                k=i;
+		                break;
+		            }
+		        }
+		    return k;
+		}
+
+		public int getArrayClosestToEndIndex(double[] arr,double value,double tolerance) {
+
+		        int k = -1;
+		        for(int i=arr.length-1; i>=0 ;i--){
+
+		            if(Math.abs(arr[i]-value) < tolerance ){
+		                k=i;
+		                break;
+		            }
+		        }
+		    return k;
+		}
+
+
+
+
+		double trapz(double[] values,double h ){
+			double integral = 0;
+			int length = values.length;
+
+
+			for(int i = 0; i<length-1; i++ ){
+				
+				integral += h * 0.5*(values[i]+ values[i+1]);
+
+			}
+
+
+
+			return integral;
+
+		}	
 
 		void storeOriginalFft(){
 			ImagePlus ourImagePlus = this.caller.ourImage;
@@ -428,7 +593,7 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 		}
 
-		ImagePlus getFft(ImagePlus imp, ImageProcessor ip){
+		ImagePlus getFftandRotate(ImagePlus imp, ImageProcessor ip){
 			
 			//IJ.beep();
 			//IJ.showStatus("Done my friend");
@@ -444,11 +609,19 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
             ImagePlus fft_image = NewImage.createRGBImage("Fourier Transform image", w, h,
                                                      1, NewImage.FILL_BLACK);
             ImageProcessor fft_image_ip = fft_image.getProcessor();
+            
 
 
         	fft_image_ip.copyBits(freq_spectrum,0,0,Blitter.COPY);
 
         	this.convertImageToGray8(fft_image);
+
+        	//IJ.write("MUSTT ROTATEEE");
+        	ImageProcessor rotatedFftIP = fft_image_ip.rotateRight();
+        	fft_image = new ImagePlus("Rotated FFT",rotatedFftIP);
+
+
+        	//fft_image.getProcessor().rotateRight();
 
         	fft_image.show();
         	fft_image.updateAndDraw();
