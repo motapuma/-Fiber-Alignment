@@ -13,13 +13,16 @@ import ij.process.FHT;
 
 public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
-	public static final String BINARIZE     = "Binarize";
+	public static final String THRESHOLD     = "Threshold";
 	public static final String FFT_AND_ROT  = "FFT and Rotate";
 	public static final String ORIGINAL_FFT = "Orig. FFT";
 	public static final String ERODE        = "Erode";
-	public static final String DILATE       = "Dilate";
-	public static final String ANALYZE      = "Analize";
-	public static final String GRAPH        = "Graph";
+	public static final String DILATE       = "Dilate";	
+	
+	public static final String AUTOMATIZATED    = "Automatic";
+	public static final String ANALYZE          = "Analize";
+	public static final String BINARY_THRESHOLD = "Binary Thres.";
+	public static final String DRAW_ANGLE       = "Draw Angles";
 	
 
 	private Panel panel;
@@ -29,6 +32,8 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 	private TextField degree_separation_value_tf;
 	public ImagePlus ourImage;
 	public ImagePlus fftImage;
+	public Plot plot;
+
 
 
 	public Fiber_Orientation() {
@@ -48,17 +53,25 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 		addTextFieldThreshold("Threshold");
 		addTextFieldDegreeSeparation("Degree Sep.");
-		addButton("Get FFT",true);
-		addButton(BINARIZE,true);
 
-		addButton(ERODE,false);
-		addButton(DILATE,false);
+		this.addCheckBox(BINARY_THRESHOLD);
+		this.addCheckBox(DRAW_ANGLE);
+		
 
+		addButton(AUTOMATIZATED,false);
 		addButton(FFT_AND_ROT,false);
+
+		addButton(THRESHOLD,true);
 		addButton(ORIGINAL_FFT,true);
-		addButton(ANALYZE,false);
-		addButton(GRAPH,false);
-		addButton("Close",false);
+
+		addButton(ERODE,true);
+		addButton(DILATE,true);
+
+		
+		
+		addButton(ANALYZE,true);
+		
+		//addButton("Close",false);
 		
 		
 		add(panel);
@@ -76,13 +89,18 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 		panel.add(b);
 	}
 
+	void addCheckBox(String label){
+		panel.add(new Checkbox(label));
+	}
+
+
 	void addTextFieldThreshold(String label) {
-		this.threshold_value_tf = new TextField("128");
+		this.threshold_value_tf = new TextField("170");
 		panel.add(new Label(label));
 		panel.add(this.threshold_value_tf);
 	}
 	void addTextFieldDegreeSeparation(String label){
-		this.degree_separation_value_tf = new TextField("5");
+		this.degree_separation_value_tf = new TextField("1");
 		panel.add(new Label(label));
 		panel.add(this.degree_separation_value_tf);
 	}
@@ -105,6 +123,24 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 		}
 
+	}
+
+
+	boolean readCheckBox(String label){
+
+		for(int i =0; i< this.panel.getComponentCount(); i++){
+
+			Component component = this.panel.getComponent(i);
+			//IJ.write(component.toString());
+
+			if( component.getClass().equals(Checkbox.class) ){
+				Checkbox cb = (Checkbox) component;
+				if(cb.getLabel().equals(label) )
+					return cb.getState();
+			}
+		}
+
+		return false;
 	}
 
 
@@ -197,11 +233,11 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 				this.caller.ourImage = fft_image;
 				this.storeOriginalFft();
 
-				
-
-
-				this.caller.enableButton(BINARIZE, true);
+				this.caller.enableButton(THRESHOLD, true);
 				this.caller.enableButton(ORIGINAL_FFT, true);
+				this.caller.enableButton(ERODE, true);
+				this.caller.enableButton(DILATE, true);
+				this.caller.enableButton(ANALYZE, true);
 
 				//ImageProcessor binarized_fft = binarize(fft_image_ip);
 
@@ -213,9 +249,9 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 			}
 
-			if (command.equals(BINARIZE)){
+			if (command.equals(THRESHOLD)){
 
-				ImagePlus image_binarized  = this.binarize(this.caller.ourImage);
+				ImagePlus image_thresholded  = this.threshold(this.caller.ourImage);
 
 			}
 
@@ -227,32 +263,35 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 				this.dilate();
 			}
 
-			if (command.equals(GRAPH)){
+			if (command.equals(ANALYZE)){
 				double[] results = this.drawAngles();
-				this.getStatistics(results);
+				double[] statistics = this.getStatistics(results);
+
+				String titleText ="Angle: " + String.format( "%.2f", statistics[2]  ) + " Peak Density: " + String.format( "%.2f", statistics[1]);
+				this.caller.plot.addText( titleText,0,0);
+
+				this.caller.plot.draw();
+        		this.caller.plot.show();
 			}
 
-			if (command.equals(ANALYZE)){
+			if (command.equals(AUTOMATIZATED)){
 				// GET FFT 
 				ImagePlus fft_image  = this.getFftandRotate(imp, ip);
 				this.caller.ourImage = fft_image;
 				this.storeOriginalFft();
 				
 				// BINARIZE 
-				this.binarize(this.caller.ourImage);
+				this.threshold(this.caller.ourImage);
 
 				// erode
-				this.erode();
-				this.erode();
-				this.erode();
-				this.erode();
+				// this.erode();
+				// this.erode();
+				// this.erode();
+				// this.erode();
 
 
 				//Start Analizing
 				this.drawAngles();
-
-
-
 
 			}
 
@@ -289,15 +328,18 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 			int size =  (int)Math.round(180/this.degree_separation)+1;
 
-			IJ.write("Size is: " + size);
+			
 
 			double[] sumatoriesRatios = new double[size] ;
 			double[] degrees   		  = new double[size] ;
 			int count = 0;
 
+			
+			boolean drawLineAtAngle = this.caller.readCheckBox(DRAW_ANGLE);
+
 			for(int degree = 0; degree<= 180; degree += this.degree_separation){
 
-				double sumatoryRatio   = this.drawLineAtDegree(our_img_plus,our_img_processor,degree);
+				double sumatoryRatio   = this.drawLineAtDegree(our_img_plus,our_img_processor,degree,drawLineAtAngle);
 
 				sumatoriesRatios[count] = sumatoryRatio;
 				degrees[count]	        = (double)degree;
@@ -308,18 +350,21 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			our_img_plus.show();
         	our_img_plus.updateAndDraw();
 
-        	Plot plt = new Plot("Angle Distribution", "x", "y", degrees ,sumatoriesRatios ); 
+        	sumatoriesRatios = this.smooth(sumatoriesRatios,5);
 
-        	plt.draw();
-        	plt.show();
+        	this.caller.plot = new Plot("Angle Distribution", "x", "y", degrees ,sumatoriesRatios ); 
+
+        	this.caller.plot.draw();
+        	this.caller.plot.show();
 
         	return sumatoriesRatios;
+        	
 
 
 		}
 
 
-		double drawLineAtDegree(ImagePlus our_img_plus,ImageProcessor our_img_processor,int angle){
+		double drawLineAtDegree(ImagePlus our_img_plus,ImageProcessor our_img_processor,int angle,boolean drawLineAtAngle){
 
 
 			double tangent = Math.tan(Math.toRadians(angle));
@@ -344,7 +389,11 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 					double sumToTheVal  = (double)our_img_processor.get(middle_width,i);
 					sumOfPixels += sumToTheVal/255;
 					//IJ.write("sum aT 90:" + sumToTheVal );
-					//our_img_processor.set(middle_width,i,128);
+					if(drawLineAtAngle){
+						
+						our_img_processor.set(middle_width,i,128);
+					}
+						
 
 					numOfElements ++;
 				}
@@ -376,7 +425,13 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 						//IJ.write(" this is divided by 128:" + sumToTheVal);
 						sumOfPixels += sumToTheVal/255;
 						//IJ.write("sum:" + sumToTheVal );
-						//our_img_processor.set((int)Math.round(x),y,128);
+						
+						if(drawLineAtAngle){
+							
+							our_img_processor.set((int)Math.round(x),y,128);
+						}
+							
+
 						numOfElements ++;
 					}
 				}
@@ -384,6 +439,18 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 			}
 			//IJ.write( "Angle: " + angle +" Value: " + sumOfPixels +  " Num of ele: " +  numOfElements);
+
+			
+			if(drawLineAtAngle){
+
+				
+
+				our_img_plus.updateAndDraw();
+				our_img_plus.draw();
+				our_img_plus.show();
+
+			}
+
 			return (double)sumOfPixels/numOfElements;
 		}
 
@@ -398,6 +465,7 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			double max = Double.NEGATIVE_INFINITY;
 			double min = Double.POSITIVE_INFINITY;
 			double middle;
+			double stepSize = 180.0/length;
 			int indexOfMax = -1;
 
 
@@ -417,7 +485,7 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			}
 			middle = ((max-min)/2) + min;
 
-			double totalAreaBelow   = this.trapz(anglesSumatories, 180.0/length);
+			double totalAreaBelow   = this.trapz(anglesSumatories, stepSize);
 			double[] areaBelowThePeakandWidth = this.getAreaBelowThePeakAndWidthRatio(anglesSumatories,indexOfMax,middle,0.05);
 
 			double areaBelowThePeak = areaBelowThePeakandWidth[0];
@@ -425,18 +493,51 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 			double areasRatio = areaBelowThePeak/totalAreaBelow;
 
+			// IJ.write("below Peak" + areaBelowThePeak);
+			// IJ.write("total Area Below" + totalAreaBelow);
+			// IJ.write("Width Ratio:" + widthRatioInPixels);
 
 			double peakDensity = areasRatio/widthRatioInPixels;
 
-			IJ.write("MAx is: " +  max );
-			IJ.write("Peak Density is: " +  peakDensity);
+			double angleOri    = indexOfMax * stepSize;
 
-			double[] statistics = {max, peakDensity};
+			IJ.write("Angle Orientation [degrees]: " +  String.format( "%.2f", angleOri )  );
+			IJ.write("Peak Density is: " + String.format( "%.2f", peakDensity )  );
+
+			double[] statistics = {max, peakDensity, angleOri};
 
 			return statistics;
 
 		}	
 
+		double[] smooth(double[] arrayToSmooth,int sizeOfSmooth){
+			int  len     = arrayToSmooth.length;
+			int   offset = (int)Math.ceil(sizeOfSmooth/2);
+			double[] res = new double[len];
+
+			//IJ.write("offset is: " +  offset);
+
+			for(int i =offset; i<len-offset; i++){
+
+				double value = 0.0;
+
+				for(int j = 0;j<sizeOfSmooth ;j++){
+					int index = i-offset+j;
+
+					//IJ.write("index " +  index);
+
+					value += arrayToSmooth[index];
+
+				}
+
+				res[i] = value/sizeOfSmooth;
+
+
+			}
+			//IJ.write("IT IS is: " +  res[10]);
+			return res;
+
+		}
 
 		double[] getAreaBelowThePeakAndWidthRatio(double[] values,int indexOfMax,double middle,double tolerance)
 		{
@@ -467,10 +568,15 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			double area      = 0.0;
 			int widthInteger = rigthIndex + (indexOfMax -  leftIndex ); 
 
-			area = trapz(Arrays.copyOfRange(values,leftIndex, indexOfMax+rigthIndex), 180/widthInteger );
+			area = trapz(Arrays.copyOfRange(values,leftIndex, indexOfMax+rigthIndex), 180.0/values.length );
 
+			// IJ.write("Area just after: "   +   area);
+			// IJ.write("RIgth Index "   +   rigthIndex);
+			// IJ.write("Left Index "    +   leftIndex);
+			// IJ.write("Index of max. " +   indexOfMax);
 
 			if(!haveRigthLimit){
+				IJ.write("dont have rigth index " );
 				rigthIndex = this.getArrayClosestToBegingIndex(leftSideValues,middle, tolerance);
 
 				area +=  trapz(Arrays.copyOfRange(leftSideValues,0, rigthIndex), 180/rigthIndex ); 
@@ -478,6 +584,7 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 				widthInteger += rigthIndex;
 			}
 			if(!haveLeftLimit){
+				IJ.write("dont have left index " );
 				leftIndex = this.getArrayClosestToEndIndex(rigthSideValues,middle, tolerance);
 				double localWidth = (rigthSideValues.length-leftIndex);
 				area +=  trapz(Arrays.copyOfRange(rigthSideValues,leftIndex, rigthSideValues.length), 180/localWidth) ;
@@ -486,6 +593,10 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			}
 
 			double widthRatio   =  widthInteger/((double)values.length);
+
+			// IJ.write("Peak width: " +   widthInteger);
+			// IJ.write("Peak length: " +  values.length);
+			// IJ.write("Width Ratio: " +  widthRatio);
 			double[] toReturn   =  {area, widthRatio };
 			return toReturn;
 
@@ -633,7 +744,9 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 		}
 
-		ImagePlus binarize(ImagePlus image_plus){
+		ImagePlus threshold(ImagePlus image_plus){
+
+			this.convertImageToGray8(image_plus);
 
 			ImageProcessor binarized_ip = image_plus.getProcessor();
 
@@ -647,11 +760,12 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			//binarized_ip.copyBits(ip,0,0,Blitter.COPY);
 
 
-			this.convertImageToGray8(image_plus);
+			//this.convertImageToGray8(image_plus);
 			
 
 			// int toZero = 0;
 			// int toHigh = 0;
+			boolean binaryThreshold = this.caller.readCheckBox(BINARY_THRESHOLD);
 
 			 for(int i =0;i<h;i++){
 			 	for(int j=0; j<w; j++){
@@ -662,7 +776,8 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			 		//IJ.write(px + "");
 
 			 		if(px >this.threshold_value){
-			 			binarized_ip.set(j,i,255);
+			 			if(binaryThreshold)
+			 				binarized_ip.set(j,i,255);
 			 			//toHigh++;
 			 		}else{
 			 			binarized_ip.set(j,i,0);
@@ -720,8 +835,8 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 	
 	}
-
-} //IP_Demo class
+}
+ //IP_Demo class
 
 
 
