@@ -7,6 +7,8 @@ import ij.*;
 import ij.process.*;
 import ij.gui.*;
 import ij.process.FHT;
+import ij.plugin.FFT;
+import ij.plugin.filter.FFTFilter;
 
 
 
@@ -264,14 +266,16 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			}
 
 			if (command.equals(ANALYZE)){
-				double[] results = this.drawAngles();
-				double[] statistics = this.getStatistics(results);
+				// double[] results = this.drawAngles();
+				// double[] statistics = this.getStatistics(results);
 
-				String titleText ="Angle: " + String.format( "%.2f", statistics[2]  ) + " Peak Density: " + String.format( "%.2f", statistics[1]);
-				this.caller.plot.addText( titleText,0,0);
+				// String titleText ="Angle: " + String.format( "%.2f", statistics[2]  ) + " Peak Density: " + String.format( "%.2f", statistics[1]);
+				// this.caller.plot.addText( titleText,0,0);
 
-				this.caller.plot.draw();
-        		this.caller.plot.show();
+				// this.caller.plot.draw();
+         		// this.caller.plot.show();
+
+        		this.reportResult();
 			}
 
 			if (command.equals(AUTOMATIZATED)){
@@ -279,7 +283,6 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 				ImagePlus fft_image  = this.getFftandRotate(imp, ip);
 				this.caller.ourImage = fft_image;
 				this.storeOriginalFft();
-				
 				// BINARIZE 
 				this.threshold(this.caller.ourImage);
 
@@ -291,7 +294,7 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 
 				//Start Analizing
-				this.drawAngles();
+				this.reportResult();
 
 			}
 
@@ -319,6 +322,17 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 
 			
 		// }
+
+		void reportResult(){
+			double[] results = this.drawAngles();
+			double[] statistics = this.getStatistics(results);
+
+			String titleText ="Angle: " + String.format( "%.2f", statistics[2]  ) + " Peak Density: " + String.format( "%.2f", statistics[1]);
+			this.caller.plot.addText( titleText,0,0);
+
+			this.caller.plot.draw();
+        	this.caller.plot.show();
+		}
 
 		double[] drawAngles(){
 
@@ -709,37 +723,48 @@ public class Fiber_Orientation extends PlugInFrame implements ActionListener {
 			//IJ.beep();
 			//IJ.showStatus("Done my friend");
 			
-			FHT fht_transform = new FHT(ip);
-			fht_transform.transform();
-			IJ.showStatus("Done!!");
-			ImageProcessor freq_spectrum = fht_transform.getPowerSpectrum();
+			// FHT fht_transform = new FHT(ip);
+			// fht_transform.transform();
+			// ImageProcessor freq_spectrum = fht_transform.getPowerSpectrum();
+
+			FFT fft_transform = new FFT();
+			fft_transform.run("");
+
+			// FFTFilter fft_filter = new FFTFilter();
+			// fft_filter.setup("",imp);
+			// fft_filter.run(ip);
 
 			int w = ip.getWidth();
             int h = ip.getHeight();
 
-            ImagePlus fft_image = NewImage.createRGBImage("Fourier Transform image", w, h,
-                                                     1, NewImage.FILL_BLACK);
+            //ImagePlus fft_image = NewImage.createRGBImage("Fourier Transform image", w, h,
+            //                                         1, NewImage.FILL_BLACK);
+
+            //ImageProcessor fft_image_ip = fft_image.getProcessor();
+
+            ImagePlus         fft_image = WindowManager.getCurrentImage();
             ImageProcessor fft_image_ip = fft_image.getProcessor();
             
 
 
-        	fft_image_ip.copyBits(freq_spectrum,0,0,Blitter.COPY);
+        	fft_image_ip.copyBits(fft_image_ip,0,0,Blitter.COPY);
 
         	this.convertImageToGray8(fft_image);
 
         	//IJ.write("MUSTT ROTATEEE");
         	ImageProcessor rotatedFftIP = fft_image_ip.rotateRight();
-        	fft_image = new ImagePlus("Rotated FFT",rotatedFftIP);
+        	ImagePlus fft_image_rotated = new ImagePlus("Rotated FFT",rotatedFftIP);
 
 
         	//fft_image.getProcessor().rotateRight();
 
-        	fft_image.show();
-        	fft_image.updateAndDraw();
+        	fft_image_rotated.show();
+        	fft_image_rotated.updateAndDraw();
+        	fft_image.close();
 
         	
 
-        	return fft_image;
+        	return fft_image_rotated;
 
 
 		}
